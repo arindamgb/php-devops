@@ -225,7 +225,7 @@ systemctl restart httpd
 
 ## Unix Domain Socket
 
-php-fpm can run on Unix Domain Sockets which can slightly improve performance than using Network Sockets.
+By default, FPM listens for incoming requests on a network socket but can use a Unix Domain Socket, which can slightly improve performance.
 
 
 Configuration at `/etc/php-fpm.d/www.conf`
