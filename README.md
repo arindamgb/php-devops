@@ -45,7 +45,7 @@
 ```
 yum update -y
 yum install httpd -y
-yum install php php-mysql -y
+yum install php -y
 systemctl restart httpd
 
 httpd -M | grep -i php
@@ -97,3 +97,198 @@ php_value session.save_path    "/var/lib/php/session"
 ```
 
 ## Installing Apache and PHP Separately(FPM/FastCGI)
+
+```
+yum remove php -y
+yum install php-fpm -y
+systemctl start php-fpm
+systemctl enable php-fpm
+```
+
+Create or Edit the configuration file at `/etc/httpd/conf.d/php.conf`
+
+```
+#
+# Redirect the PHP scripts execution to the FPM backend
+#
+<FilesMatch \.php$>
+    SetHandler "proxy:fcgi://127.0.0.1:9000"
+</FilesMatch>
+
+#
+# Allow php to handle Multiviews
+#
+AddType text/html .php
+
+#
+# Add index.php to the list of files that will be served as directory
+# indexes.
+#
+DirectoryIndex index.php
+
+#
+# The following lines prevent .user.ini files from being viewed by Web clients
+#
+<Files ".user.ini">
+    Require all denied
+</Files
+```
+
+```
+systemctl restart httpd
+```
+
+**Visit:** `http://<my-ip>/info.php`
+
+![php_fastcgi info](/images/php_fastcgi.png "php_fastcgi info")
+
+
+The main FPM configuration file is `/etc/php-fpm.conf`
+
+FPM can run various pools, each one running PHP scripts with possible different options, the default pool (www) configuration file is `/etc/php-fpm.d/www.conf`
+
+
+## Separate frontend(apache) and backend(php-fpm) servers
+
+Apache and php-fpm can be configured on different servers.
+
+Say, frontend at `10.0.0.1` and backend at `10.0.0.2`
+
+Configuration at `/etc/php-fpm.d/www.conf`
+
+```
+listen = 10.0.0.2:9000
+listen.allowed_clients = 10.0.0.1
+```
+
+Configuration at `/etc/httpd/conf.d/php.conf`
+
+```
+SetHandler "proxy:fcgi://10.0.0.2:9000"
+```
+
+```
+systemctl restart php-fpm
+systemctl restart httpd
+```
+
+
+## Multiple php-fpm backends
+
+Apache server can have multiple php-fpm backend and load balance among them.
+
+Say, 3 php-fpm backens available at `10.0.0.2:9000`, `10.0.0.2:9000` & `10.0.0.2:9000`
+
+
+Configuration at `/etc/httpd/conf.d/php.conf`
+
+```
+#
+# Load balancer creation
+#
+<Proxy balancer://phpfpmlb>
+    BalancerMember fcgi://10.0.0.2:9000
+    BalancerMember fcgi://10.0.0.3:9000
+    BalancerMember fcgi://10.0.0.4:9000
+</Proxy>
+
+#
+# Redirect PHP execution to the balancer
+#
+<FilesMatch \.php$>
+    SetHandler "proxy:balancer://phpfpmlb"
+</FilesMatch>
+
+#
+# Allow php to handle Multiviews
+#
+AddType text/html .php
+
+#
+# Add index.php to the list of files that will be served as directory
+# indexes.
+#
+DirectoryIndex index.php
+
+#
+# The following lines prevent .user.ini files from being viewed by Web clients.
+#
+<Files ".user.ini">
+    Require all denied
+</Files>
+```
+
+
+```
+systemctl restart httpd
+```
+
+## Unix Domain Socket
+
+php-fpm can run on Unix Domain Sockets which can slightly improve performance than using Network Sockets.
+
+
+Configuration at `/etc/php-fpm.d/www.conf`
+
+```
+listen = /run/php-fpm/www.sock
+listen.owner = apache
+listen.mode = 0660
+```
+
+Configuration at `/etc/httpd/conf.d/php.conf`
+
+```
+#
+# Redirect the PHP scripts execution to the FPM backend
+#
+<FilesMatch \.php$>
+    SetHandler "proxy:unix:/run/php-fpm/www.sock|fcgi://localhost"
+</FilesMatch
+```
+
+```
+systemctl restart php-fpm
+systemctl restart httpd
+```
+
+
+## Threaded MPM(Multi-Processing Module)
+
+### What is Apache MPM 
+
+Apache MPM(Multi-Processing Module) refers to the module in the Apache HTTP Server responsible for managing the creation and management of multiple processes or threads to handle incoming requests. The choice of MPM can significantly impact the performance and scalability of the web server.
+
+#### 1. Prefork MPM
+Prefork MPM launches multiple child processes. Each child process handle one connection at a time.
+
+Prefork uses high memory in comparison to worker MPM. Prefork is the default MPM used by Apache server. Preform MPM always runs few minimum (MinSpareServers) defined processes as spare, so new requests do not need to wait for new process to start.
+
+#### 2. Worker MPM
+Worker MPM generates multiple child processes similar to prefork. Each child process runs many threads. Each thread handles one connection at a time.
+
+In sort Worker MPM implements a hybrid multi-process multi-threaded server. Worker MPM uses low memory in comparison to Prefork MPM.
+
+#### 3. Event MPM
+Event MPM is introduced in Apache 2.4, It is pretty similar to worker MPM but it designed for managing high loads.
+
+This MPM allows more requests to be served simultaneously by passing off some processing work to supporting threads. Using this MPM Apache tries to fix the ‘keep alive problem’ faced by other MPM. When a client completes the first request then the client can keep the connection open, and send further requests using the same socket, which reduces connection overload.
+
+### Changing the default MPM in Apache
+
+By default, the Apache HTTP Server uses a set of processes to manage incoming requests (prefork MPM).
+
+As we now don't use mod_php we can switch to a threaded MPM (worker or an event) so a set of threads will manage the requests, reducing the number of running processes and the memory footprint, and improving performance, especially when a lot of static files are served.
+
+
+Switch the used MPM in the `/etc/httpd/conf.modules.d/00-mpm.conf`
+
+```
+# disabled # LoadModule mpm_prefork_module modules/mod_mpm_prefork.so
+# disabled # LoadModule mpm_worker_module modules/mod_mpm_worker.so
+LoadModule mpm_event_module modules/mod_mpm_event.so
+```
+
+```
+systemctl restart httpd
+```
