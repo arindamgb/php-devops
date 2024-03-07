@@ -380,7 +380,7 @@ server {
 
     location ~ \.php$ {
         # Can be hashed if root is declared globally above
-	    root   /usr/share/nginx/html;
+	root   /usr/share/nginx/html;
         try_files $uri =404;
         fastcgi_pass unix:/run/php-fpm/www.sock;
         fastcgi_index index.php;
