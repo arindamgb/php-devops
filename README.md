@@ -291,3 +291,109 @@ LoadModule mpm_event_module modules/mod_mpm_event.so
 ```
 systemctl restart httpd
 ```
+
+## Using Nginx(instead of Apache) with PHP-FPM/FastCGI
+
+>Starting fresh at this point. Using Centos 7
+
+```
+yum install epel-release -y
+yum repolist
+yum install nginx -y
+nginx -v
+# Output: nginx version: nginx/1.20.1
+systemctl start nginx
+systemctl enable nginx
+
+yum install php-fpm -y
+php-fpm -v
+# Output: PHP 5.4.16 (fpm-fcgi)
+systemctl start php-fpm
+systemctl enable php-fpm
+```
+
+- PHP-FPM configuration file: `/etc/php-fpm.d/www.conf`
+```
+[www]
+listen = /run/php-fpm/www.sock
+listen.allowed_clients = 127.0.0.1
+listen.owner = nobody
+listen.group = nobody
+user = nginx
+group = nginx
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 35
+slowlog = /var/log/php-fpm/www-slow.log
+php_admin_value[error_log] = /var/log/php-fpm/www-error.log
+php_admin_flag[log_errors] = on
+php_value[session.save_handler] = files
+php_value[session.save_path] = /var/lib/php/session
+```
+
+
+- Nginx configuration file: `/etc/nginx/conf.d/default.conf`
+```
+server {
+    listen       80;
+    server_name  localhost;
+
+    # Declare the root globally here for all location
+    #root   /usr/share/nginx/html
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ =404;
+    }
+
+    error_page  404              /404.html;
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+
+    location ~ \.php$ {
+        # Can be hashed if root is declared globally above
+	    root   /usr/share/nginx/html;
+        try_files $uri =404;
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+```
+
+```
+echo "<?php phpinfo(); ?>" > /usr/share/nginx/html/info.php
+systemctl restart php-fpm nginx
+```
+
+
+**Visit:** `http://<my-ip>/info.php`
