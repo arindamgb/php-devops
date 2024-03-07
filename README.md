@@ -49,7 +49,7 @@ yum install php -y
 systemctl restart httpd
 
 httpd -M | grep -i php
-php5_module (shared)
+# Output: php5_module (shared)
 
 echo "<?php phpinfo(); ?>" > /var/www/html/info.php
 ```
@@ -143,10 +143,9 @@ systemctl restart httpd
 ![php_fastcgi info](/images/php_fastcgi.png "php_fastcgi info")
 
 
-The main FPM configuration file is `/etc/php-fpm.conf`
-
-FPM can run various pools, each one running PHP scripts with possible different options, the default pool (www) configuration file is `/etc/php-fpm.d/www.conf`
-
+- The main FPM configuration file is `/etc/php-fpm.conf`
+- FPM can run various pools, each one running PHP scripts with possible different options, the default pool (www) configuration file is `/etc/php-fpm.d/www.conf`
+- `fastcgi.conf` & `fastcgi_params` file location: `/etc/nginx`
 
 ## Separate frontend(apache) and backend(php-fpm) servers
 
