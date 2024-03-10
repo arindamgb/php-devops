@@ -145,7 +145,6 @@ systemctl restart httpd
 
 - The main FPM configuration file is `/etc/php-fpm.conf`
 - FPM can run various pools, each one running PHP scripts with possible different options, the default pool (www) configuration file is `/etc/php-fpm.d/www.conf`
-- `fastcgi.conf` & `fastcgi_params` file location: `/etc/nginx`
 
 ## Separate frontend(apache) and backend(php-fpm) servers
 
@@ -395,5 +394,6 @@ echo "<?php phpinfo(); ?>" > /usr/share/nginx/html/info.php
 systemctl restart php-fpm nginx
 ```
 
+- `fastcgi.conf` & `fastcgi_params` file location: `/etc/nginx`
 
 **Visit:** `http://<my-ip>/info.php`
