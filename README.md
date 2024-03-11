@@ -397,3 +397,89 @@ systemctl restart php-fpm nginx
 - `fastcgi.conf` & `fastcgi_params` file location: `/etc/nginx`
 
 **Visit:** `http://<my-ip>/info.php`
+
+
+## Using Nginx(instead of Apache) with PHP-FPM/FastCGI
+
+> I am using Ubuntu 20.04.5 LTS
+
+```
+add-apt-repository ppa:ondrej/php
+apt update
+apt install php8.3-fpm -y
+php -v
+# Output: PHP 8.3.3-1+ubuntu20.04.1+deb.sury.org+1 (cli) (built: Feb 15 2024 18:38:21) (NTS)
+apt install nginx -y
+nginx -v
+# Output: nginx version: nginx/1.18.0 (Ubuntu)
+systemctl start php8.3-fpm
+systemctl start nginx
+```
+
+- The main FPM configuration file is `/etc/php/8.3/fpm/php-fpm.conf`
+- FPM pool configuration file is `/etc/php/8.3/fpm/pool.d/www.conf`
+
+
+Let us create an FPM pool for running a PHP application effectively through a separate user. To start with, create a new user who will have exclusive rights over this pool.
+
+```
+groupadd info_user
+useradd -g info_user info_user
+```
+
+Pool configuration file `/etc/php/8.3/fpm/pool.d/php-info.conf`
+
+```
+[php_info_pool]
+user = info_user
+group = info_user
+listen = /var/run/php8.3-fpm-php-info-pool.sock
+listen.owner = www-data
+listen.group = www-data
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+; Choose how the process manager will control the number of child processes. 
+pm = dynamic 
+pm.max_children = 75 
+pm.start_servers = 10 
+pm.min_spare_servers = 5 
+pm.max_spare_servers = 20 
+pm.process_idle_timeout = 10s
+```
+
+Nginx site configuration: `/etc/nginx/sites-available/default`
+
+```
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+	
+	root /var/www/html;
+
+	index index.html index.htm index.nginx-debian.html;
+
+	server_name _;
+
+	location / {
+		try_files $uri $uri/ =404;
+	}
+	
+	location ~ \.php$ {
+            fastcgi_split_path_info ^(.+\.php)(/.+)$;
+            fastcgi_pass unix:/var/run/php8.3-fpm-php-info-pool.sock;
+            fastcgi_index index.php;
+            include fastcgi.conf;
+    }
+}
+```
+
+```
+echo "<?php phpinfo(); ?>" > /var/www/html/info.php
+systemctl restart php8.3-fpm
+systemctl restart nginx
+```
+
+**Visit:** `http://<my-ip>/info.php`
+
+
+###### This note ends here.
