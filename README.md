@@ -447,7 +447,7 @@ pm.max_spare_servers = 20
 pm.process_idle_timeout = 10s
 ```
 
-Nginx site configuration: `/etc/nginx/sites-available/default`
+Nginx site configuration: `/etc/nginx/sites-enabled/default`
 
 ```
 server {
@@ -481,5 +481,30 @@ systemctl restart nginx
 
 **Visit:** `http://<my-ip>/info.php`
 
+## Nginx with PHP FPM/FastCGI using Docker
 
-###### This note ends here.
+>I am using Ubuntu 20.04.5 LTS
+
+**Prepare the Server**
+```
+apt install docker.io docker-compose -y 
+systemctl start docker
+systemctl enable docker
+```
+**Download the code repository**
+```
+git clone https://github.com/arindamgb/php-devops.git
+cd php-devops/nginx-with-php-fpm-docker
+```
+**Build and run Docker images**
+```
+docker build -f Dockerfile_code -t arindamgb/php-code:1.0 .
+docker build -f Dockerfile_phpfpm -t arindamgb/ubuntu22-php8.3-fpm:1.0 .
+docker-compose up -d
+```
+
+**Visit:**
+```
+http://<my-ip>:8080
+http://<my-ip>:8080/info.php
+```

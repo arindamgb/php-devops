@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  code:
+    container_name: code
+    image: arindamgb/php-code:1.0
+    restart: always
+    volumes:
+      - code_volume:/app
+  php-fpm:
+    container_name: php-fpm
+    image: arindamgb/ubuntu22-php8.3-fpm:1.0
+    restart: always
+    depends_on:
+      - code
+    volumes:
+      - code_volume:/var/www/html:ro
+      - ./php_pool_config:/etc/php/8.3/fpm/pool.d
+  nginx:
+    container_name: nginx
+    image: nginx:1.25.4-alpine
+    restart: always
+    depends_on:
+      - code
+      - php-fpm
+    ports:
+      - 8080:80
+    volumes:
+      - code_volume:/var/www/html:ro
+      - ./nginx_config:/etc/nginx/conf.d/
+volumes:
+  code_volume:

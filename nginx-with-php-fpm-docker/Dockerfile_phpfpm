@@ -1,0 +1,18 @@
+FROM ubuntu:22.04
+
+# Update package lists and install necessary packages
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:ondrej/php && \
+    apt-get update && \
+    apt-get install -y php8.3-fpm
+
+# Create directory for default PHP-FPM socket
+RUN mkdir -p /run/php
+
+# Create group and user for custom pool configuration
+RUN groupadd info_user && \
+    useradd -g info_user info_user
+
+# Start PHP-FPM (assuming it doesn't use systemctl)
+CMD ["php-fpm8.3", "--nodaemonize"]
