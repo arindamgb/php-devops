@@ -399,7 +399,7 @@ systemctl restart php-fpm nginx
 **Visit:** `http://<my-ip>/info.php`
 
 
-## Using Nginx(instead of Apache) with PHP-FPM/FastCGI
+## Nginx with PHP-FPM/FastCGI in Ubuntu
 
 > I am using Ubuntu 20.04.5 LTS
 
