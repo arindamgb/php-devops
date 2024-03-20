@@ -14,5 +14,8 @@ RUN mkdir -p /run/php
 RUN groupadd info_user && \
     useradd -g info_user info_user
 
+# Expose php-fpm port
+EXPOSE 9000/tcp
+
 # Start PHP-FPM (assuming it doesn't use systemctl)
 CMD ["php-fpm8.3", "--nodaemonize"]

@@ -54,7 +54,7 @@ httpd -M | grep -i php
 echo "<?php phpinfo(); ?>" > /var/www/html/info.php
 ```
 
-**Visit:** `http://<my-ip>/info.php`
+**Visit** `http://<my-ip>/info.php`
 
 ![php_mod info](/images/php_mod.png "php_mod info")
 
@@ -138,7 +138,7 @@ DirectoryIndex index.php
 systemctl restart httpd
 ```
 
-**Visit:** `http://<my-ip>/info.php`
+**Visit** `http://<my-ip>/info.php`
 
 ![php_fastcgi info](/images/php_fastcgi.png "php_fastcgi info")
 
@@ -396,7 +396,7 @@ systemctl restart php-fpm nginx
 
 - `fastcgi.conf` & `fastcgi_params` file location: `/etc/nginx`
 
-**Visit:** `http://<my-ip>/info.php`
+**Visit** `http://<my-ip>/info.php`
 
 
 ## Nginx with PHP-FPM/FastCGI in Ubuntu
@@ -479,15 +479,40 @@ systemctl restart php8.3-fpm
 systemctl restart nginx
 ```
 
-**Visit:** `http://<my-ip>/info.php`
+**Visit** `http://<my-ip>/info.php`
 
-## Nginx with PHP FPM/FastCGI using Docker
+
+## What is `Supervisor` (A brief introduction)
+**Supervisor** (also known as **supervisord)** is a process control system for Unix-like operating systems. It allows you to manage and control multiple processes, restart them if they crash, and monitor their status. Supervisor is often used in scenarios where you need to run multiple processes concurrently and ensure their availability and stability.
+
+**Installing Supervisor**
+> Ubuntu 20.04.5 LTS
+```
+apt install -y supervisor
+systemctl start supervisor
+systemctl enable supervisor
+```
+
+**Configuration files**
+
+Supervisor Configuration file: `/etc/supervisor/supervisord.conf`
+
+Worker Process Configuration directory: `/etc/supervisor/conf.d/`
+
+**Why do we need Supervisor?**
+
+Sometimes, we require a process to run indefinitely without interruption, such as scripts, scheduled tasks, or critical services like PHP-FPM/Nginx servers. Instead of simply running these processes in the background, we can use `Supervisor` to manage them. `Supervisor` ensures that even if the process stops unexpectedly for any reason, it will be automatically restarted. This ensures that the intended process remains consistently operational and reliable.
+
+
+## Nginx with PHP FPM/FastCGI & Supervisor using Docker
 
 >I am using Ubuntu 20.04.5 LTS
 
+
+
 **Prepare the Server**
 ```
-apt install docker.io docker-compose -y 
+apt install docker.io docker-compose -y
 systemctl start docker
 systemctl enable docker
 ```
@@ -500,11 +525,105 @@ cd php-devops/nginx-with-php-fpm-docker
 ```
 docker build -f Dockerfile_code -t arindamgb/php-code:1.0 .
 docker build -f Dockerfile_phpfpm -t arindamgb/ubuntu22-php8.3-fpm:1.0 .
+docker build -f Dockerfile_supervisor -t arindamgb/ubuntu22-supervisor:1.0 .
+```
+**Docker Compose File**
+
+```
+version: '3'
+
+services:
+  code:
+    container_name: code
+    image: arindamgb/php-code:1.0
+    restart: always
+    volumes:
+      - code_volume:/app
+  php-fpm:
+    container_name: php-fpm
+    image: arindamgb/ubuntu22-php8.3-fpm:1.0
+    restart: always
+    depends_on:
+      - code
+    volumes:
+      - code_volume:/var/www/html:ro
+      - ./php_pool_config:/etc/php/8.3/fpm/pool.d:ro
+  nginx:
+    container_name: nginx
+    image: nginx:1.25.4-alpine
+    restart: always
+    depends_on:
+      - code
+      - php-fpm
+    ports:
+      - 8080:80
+    volumes:
+      - code_volume:/var/www/html:ro
+      - ./nginx_config:/etc/nginx/conf.d/:ro
+  worker-supervisor:
+    container_name: worker-supervisor
+    working_dir: /var/www/html
+    image: arindamgb/ubuntu22-supervisor:1.0
+    restart: always
+    ports:
+      - 9001:9001
+    volumes:
+      - code_volume:/var/www/html:rw
+      - ./supervisor_config/supervisord.conf:/etc/supervisor/supervisord.conf:ro
+      - ./supervisor_config/conf.d:/etc/supervisor/conf.d/:ro
+    depends_on:
+      - code
+      - php-fpm
+volumes:
+  code_volume:
+```
+
+
+```
 docker-compose up -d
 ```
 
-**Visit:**
+**Visit**
 ```
 http://<my-ip>:8080
 http://<my-ip>:8080/info.php
 ```
+
+**Check the log file of Supervisor Worker Process**
+
+```
+docker-compose exec -T  worker-supervisor  tail -f hello-world/hello.log
+168 - Hello @ 19:25:05
+169 - Hello @ 19:25:07
+170 - Hello @ 19:25:09
+171 - Hello @ 19:25:11
+172 - Hello @ 19:25:13
+173 - Hello @ 19:25:15
+174 - Hello @ 19:25:17
+```
+
+**Check the `STDOUT` log of Supervisor Worker**
+
+```
+docker-compose exec -T  worker-supervisor  tail -f hello-world/hello-world_stdout.log
+12 - Hello STDOUT @ 20:16:55
+13 - Hello STDOUT @ 20:16:57
+14 - Hello STDOUT @ 20:16:59
+15 - Hello STDOUT @ 20:17:01
+16 - Hello STDOUT @ 20:17:03
+17 - Hello STDOUT @ 20:17:05
+```
+
+**Access Supervisor Web Interface**
+```
+http://<my-ip>:9001
+User: admin
+Password: admin123
+```
+
+![Supervisor Web Interface](/images/supervisor_web_interface.png "Supervisor Web Interface")
+
+
+**Signing off, [Arindam Gustavo Biswas](https://www.linkedin.com/in/arindamgb/)**
+
+21st March 2024, 02:43 AM

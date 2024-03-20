@@ -1,0 +1,16 @@
+FROM ubuntu:22.04
+
+# Update package lists and install necessary packages
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:ondrej/php && \
+    apt-get update && \
+    apt-get install -y php8.3-fpm
+RUN apt-get install -y supervisor && \
+    apt-get install -y procps
+
+# Expose port for Supervisor Web Interface
+EXPOSE 9001/tcp
+
+# Start Supervisor (assuming it doesn't use systemctl)
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]

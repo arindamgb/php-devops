@@ -15,7 +15,7 @@ services:
       - code
     volumes:
       - code_volume:/var/www/html:ro
-      - ./php_pool_config:/etc/php/8.3/fpm/pool.d
+      - ./php_pool_config:/etc/php/8.3/fpm/pool.d:ro
   nginx:
     container_name: nginx
     image: nginx:1.25.4-alpine
@@ -27,6 +27,20 @@ services:
       - 8080:80
     volumes:
       - code_volume:/var/www/html:ro
-      - ./nginx_config:/etc/nginx/conf.d/
+      - ./nginx_config:/etc/nginx/conf.d/:ro
+  worker-supervisor:
+    container_name: worker-supervisor
+    working_dir: /var/www/html
+    image: arindamgb/ubuntu22-supervisor:1.0
+    restart: always
+    ports:
+      - 9001:9001
+    volumes:
+      - code_volume:/var/www/html:rw
+      - ./supervisor_config/supervisord.conf:/etc/supervisor/supervisord.conf:ro
+      - ./supervisor_config/conf.d:/etc/supervisor/conf.d/:ro
+    depends_on:
+      - code
+      - php-fpm
 volumes:
   code_volume:

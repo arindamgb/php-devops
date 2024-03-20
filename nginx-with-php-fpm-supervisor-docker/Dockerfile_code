@@ -1,5 +1,5 @@
 FROM alpine:3.19.1
-WORKDIR /app
+WORKDIR /app/
 COPY code/ .
 # CMD to keep the container up
 CMD sleep infinity
