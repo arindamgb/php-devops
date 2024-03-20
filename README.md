@@ -519,7 +519,7 @@ systemctl enable docker
 **Download the code repository**
 ```
 git clone https://github.com/arindamgb/php-devops.git
-cd php-devops/nginx-with-php-fpm-docker
+cd php-devops/nginx-with-php-fpm-supervisor-docker
 ```
 **Build and run Docker images**
 ```
