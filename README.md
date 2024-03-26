@@ -1,5 +1,7 @@
 # Deploying PHP Applications using php_mod and FPM/FastCGI
 
+![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![Apache](https://img.shields.io/badge/apache-%23D42029.svg?style=for-the-badge&logo=apache&logoColor=white)![Nginx](https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white)![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
+
 ## Ways to deploy a PHP  Application
 
 ### 1. Installing PHP as an Apache Module
@@ -624,6 +626,10 @@ Password: admin123
 ![Supervisor Web Interface](/images/supervisor_web_interface.png "Supervisor Web Interface")
 
 
-**Signing off, [Arindam Gustavo Biswas](https://www.linkedin.com/in/arindamgb/)**
+## Check Live Preview
 
-21st March 2024, 02:43 AM
+**[Live Demo](https://phpdevops.arindamgb.com/)**
+
+> **Signing off, [Arindam Gustavo Biswas](https://www.linkedin.com/in/arindamgb/)**
+>
+> 21st March 2024, 02:43 AM
